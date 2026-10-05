@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<!-- 幽靈職缺偵測器（104-ghost-job-detector）· product page, built from the course-check template
+     Product page for the tool, in the personal site Kami style. Shared parts (tokens, fonts,
+     icons, theme toggle) are copied from the personal site index.html; everything under
+     "Product page" in the stylesheet is the reusable product layer. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>
+/* This page now lives at eric-yen.com. The GitHub Pages copy forwards there,
+   keeping the path, query and hash, so old links keep working. */
+if (location.hostname === "fansia.github.io") location.replace("https://eric-yen.com" + location.pathname + location.search + location.hash);
+</script>
+<script>
+/* Set the theme before first paint so a returning dark-mode reader never sees a white flash. */
+(function () {
+  try { var t = localStorage.getItem("theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+})();
+</script>
+<script>
+/* Arriving from the other language: turn the page. To EN = forward, to 中文 = back. */
+addEventListener("pagereveal", function (e) {
+  if (!e.viewTransition) return;
+  var dir = null;
+  try { dir = sessionStorage.getItem("turn"); sessionStorage.removeItem("turn"); } catch (err) {}
+  /* Skipping rejects the transition's promises; swallow that, it is expected. */
+  e.viewTransition.ready.catch(function () {}); e.viewTransition.finished.catch(function () {});
+  if (!dir || matchMedia("(prefers-reduced-motion: reduce)").matches) { e.viewTransition.skipTransition(); return; }
+  var root = document.documentElement;
+  root.dataset.turn = dir;
+  var opts = { duration: 650, easing: "cubic-bezier(.45, 0, .25, 1)", fill: "both" };
+  var flat = "perspective(2200px) rotateY(0deg)", up = "perspective(2200px) rotateY(-92deg)";
+  e.viewTransition.ready.then(function () {
+    var sheet = dir === "forward" ? "::view-transition-old(root)" : "::view-transition-new(root)";
+    var under = dir === "forward" ? "::view-transition-new(root)" : "::view-transition-old(root)";
+    root.animate({ transform: dir === "forward" ? [flat, up] : [up, flat],
+                   filter: dir === "forward" ? ["brightness(1)", "brightness(.82)"] : ["brightness(.82)", "brightness(1)"],
+                   transformOrigin: ["0 50%", "0 50%"] },
+                 Object.assign({ pseudoElement: sheet }, opts));
+    root.animate({ filter: dir === "forward" ? ["brightness(.9)", "brightness(1)"] : ["brightness(1)", "brightness(.9)"],
+                   transform: dir === "forward" ? ["scale(.985)", "scale(1)"] : ["scale(1)", "scale(.985)"] },
+                 Object.assign({ pseudoElement: under }, opts));
+  });
+  e.viewTransition.finished.finally(function () { delete root.dataset.turn; });
+});
+</script>
+<title>A prompt for researching jobs · Eric Yen</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Know whether a company and a role are worth it before you apply. Paste a job link and let AI write a report on the company and the role.">
+<meta property="og:title" content="A prompt for researching jobs · Eric Yen">
+<meta property="og:description" content="Know whether a company and a role are worth it before you apply. Paste a job link and let AI write a report on the company and the role.">
+<meta property="og:image" content="https://eric-yen.com/job-research-prompt/assets/icon-256.png">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<link rel="icon" type="image/png" href="../assets/icon-256.png">
+<link rel="apple-touch-icon" href="../assets/icon-256.png">
+<link rel="canonical" href="https://eric-yen.com/job-research-prompt/en/">
+<link rel="alternate" hreflang="zh-Hant" href="https://eric-yen.com/job-research-prompt/">
+<link rel="alternate" hreflang="en" href="https://eric-yen.com/job-research-prompt/en/">
+<link rel="alternate" hreflang="x-default" href="https://eric-yen.com/job-research-prompt/">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:url" content="https://eric-yen.com/job-research-prompt/en/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ========== Tokens (Kami parchment) ========== */
+:root {
+  --parchment:    #f5f4ed;
+  --ivory:        #faf9f5;
+  --inline-code-bg: #f0eee6;
+
+  --brand:        #1B365D;
+  --brand-light:  #2D5A8A;
+  --brand-tint:   #EEF2F7;
+
+  --near-black:   #141413;
+  --dark-warm:    #3d3d3a;
+  --olive:        #504e49;
+  --stone:        #6b6a64;
+
+  --border:       #e8e6dc;
+  --border-soft:  #e5e3d8;
+
+  /* Latin first so mixed runs ("15 年", "AI") share the CJK baseline */
+  --serif: Charter, "Bitstream Charter", "LXGW WenKai TC", "Noto Serif TC", "Source Han Serif TC", "Songti TC", serif;
+  --latin-ui: "PingFang TC", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--parchment);
+  color: var(--near-black);
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: 0.4px;
+  font-variant-numeric: lining-nums;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--brand); text-decoration: none; transition: color .15s; }
+@media (hover: hover) { a:hover { color: var(--brand-light); } }
+.num { font-variant-numeric: lining-nums tabular-nums; }
+
+.page { max-width: 1120px; margin: 0 auto; padding: 88px 64px 120px; }
+
+/* ========== Buttons ========== */
+.btn-primary, .btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--latin-ui); font-weight: 500; font-size: 15px;
+  letter-spacing: .2px; padding: 13px 28px; border-radius: 999px;
+  border: 1.5px solid var(--brand); min-width: 158px; cursor: pointer;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.btn-primary { background: var(--brand); color: var(--on-brand); }
+.btn-ghost { background: transparent; color: var(--brand); }
+@media (hover: hover) {
+  .btn-primary:hover { background: var(--brand-light); border-color: var(--brand-light); color: var(--on-brand); transform: translateY(-1px); }
+  .btn-ghost:hover { background: var(--brand-tint); color: var(--brand); transform: translateY(-1px); }
+}
+
+/* ========== Hero ========== */
+.hero { padding-bottom: 56px; border-bottom: 1px solid var(--border-soft); margin-bottom: 96px; }
+.eyebrow {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  font-family: var(--latin-ui); font-size: 12px; font-weight: 500;
+  letter-spacing: .4px; text-transform: uppercase; color: var(--stone); margin: 0 0 28px;
+}
+.lang-switch { display: flex; align-items: center; gap: 2px; font-family: var(--latin-ui); font-size: 12px; font-weight: 500; letter-spacing: .4px; margin-left: 6px; padding-left: 18px; border-left: 1px solid var(--border); }
+/* Same box for the current language (span) and the other one (a), so the row never moves between pages */
+.lang-switch > a, .lang-switch > span { display: inline-block; min-width: 40px; text-align: center; line-height: 20px; padding: 3px 7px; border-radius: 999px; }
+.lang-switch a { color: var(--stone); }
+.lang-switch [aria-current] { color: var(--brand); background: var(--brand-tint); }
+@media (hover: hover) { .lang-switch a:hover { color: var(--brand); } }
+
+/* Brand icons: one size, one colour, everywhere they appear */
+.ico { width: 18px; height: 18px; fill: currentColor; display: block; }
+.hero-links, .icons, .colophon .links { display: flex; align-items: center; gap: 18px; }
+.hero-links > a, .icons a, .colophon .links a { color: var(--stone); display: inline-flex; padding: 4px; margin: -4px; }
+@media (hover: hover) { .hero-links > a:hover, .icons a:hover, .colophon .links a:hover { color: var(--brand); } }
+.hero-name { display: flex; align-items: center; gap: 24px; margin: 0 0 22px; }
+.hero-name img { width: 104px; height: 104px; mix-blend-mode: multiply; flex: none; }
+.hero h1 { font-weight: 500; font-size: 88px; line-height: 1.05; margin: 0; }
+.hero .tagline { font-size: 26px; line-height: 1.5; color: var(--near-black); margin: 0 0 14px; max-width: 820px; }
+.hero-sub { font-size: 17px; line-height: 1.7; color: var(--olive); margin: 0 0 24px; max-width: 760px; }
+.hero-tokens { display: flex; flex-wrap: wrap; margin: 0 0 36px; font-family: var(--latin-ui); font-size: 13px; color: var(--stone); }
+.hero-tokens span:not(:last-child)::after { content: "·"; margin: 0 10px; color: color-mix(in srgb, var(--stone) 58%, transparent); }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* ========== Sections ========== */
+section { margin-bottom: 96px; }
+.section-num { font-family: var(--latin-ui); font-size: 12px; font-weight: 500; letter-spacing: .4px; color: var(--stone); margin: 0 0 10px; }
+.section-title { font-weight: 500; font-size: 36px; line-height: 1.25; margin: 0 0 12px; }
+.section-lede { color: var(--olive); font-size: 17px; margin: 0 0 40px; }
+
+/* Metrics */
+.metrics { display: flex; flex-wrap: wrap; gap: 32px; margin: 2px 0 16px; }
+.metric b { display: block; font-weight: 500; font-size: 28px; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+.metric span { font-family: var(--latin-ui); font-size: 13px; color: var(--stone); }
+
+/* Features (tools) */
+.features { border-top: 1px solid var(--border-soft); }
+.feature { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 36px; padding: 28px 0; border-bottom: 1px solid var(--border-soft); }
+.feature-name { font-size: 22px; font-weight: 500; line-height: 1.35; color: var(--near-black); margin: 0; }
+.feature-name small { display: block; margin-top: 6px; font-size: 13px; font-style: italic; font-weight: 400; color: var(--olive); }
+.feature-desc { color: var(--dark-warm); font-size: 15.5px; margin: 0; }
+.feature-desc p { margin: 0 0 12px; }
+.feature-links { font-family: var(--latin-ui); font-size: 14px; }
+.feature-links a:not(:last-child)::after { content: "·"; margin: 0 10px; color: var(--stone); }
+
+/* Writing list */
+.posts { list-style: none; margin: 0 0 24px; padding: 0; border-top: 1px solid var(--border-soft); }
+.posts li { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 24px; padding: 18px 0; border-bottom: 1px solid var(--border-soft); }
+.posts time { font-family: var(--latin-ui); font-size: 13px; color: var(--stone); padding-top: 3px; font-variant-numeric: lining-nums tabular-nums; }
+.posts a { font-size: 18px; line-height: 1.45; }
+.more { font-family: var(--latin-ui); font-size: 14px; }
+
+/* Milestones: a dated rail, key turns marked in brand ink */
+.milestones { list-style: none; margin: 0; padding: 0; position: relative; }
+.milestones::before { content: ""; position: absolute; left: 117px; top: 10px; bottom: 10px; width: 1px; background: var(--border); }
+.milestones li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 44px; padding: 0 0 30px; position: relative; }
+.milestones li:last-child { padding-bottom: 0; }
+.milestones li::before { content: ""; position: absolute; left: 112px; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--parchment); border: 1.5px solid var(--stone); }
+.milestones li.key::before { background: var(--brand); border-color: var(--brand); }
+.milestones time { font-family: var(--latin-ui); font-size: 13px; color: var(--stone); text-align: right; padding-top: 1px; font-variant-numeric: lining-nums tabular-nums; }
+.milestones h3 { font-weight: 500; font-size: 18px; line-height: 1.45; margin: 0 0 4px; color: var(--near-black); }
+.milestones p { margin: 0; color: var(--olive); font-size: 14.5px; line-height: 1.6; }
+@media (max-width: 480px) {
+  .milestones::before { left: 4px; }
+  .milestones li { grid-template-columns: minmax(0, 1fr); gap: 2px; padding-left: 24px; }
+  .milestones li::before { left: 0; }
+  .milestones time { text-align: left; }
+}
+
+/* Help groups: each group lists the concrete things, name + one line */
+.items { list-style: none; margin: 0; padding: 0; }
+.items li { padding: 0 0 16px; }
+.items li:last-child { padding-bottom: 0; }
+.items a { font-size: 16.5px; }
+.items span { display: block; color: var(--olive); font-size: 14.5px; line-height: 1.6; }
+.feature-desc .lead { margin: 0 0 16px; }
+.items span b, .feature-desc .lead b { font-weight: 500; color: var(--near-black); }
+.items span b + *, .items span b { margin-right: .15em; }
+
+
+/* Stances: three short lines in his own words, each with where he said it */
+.stances { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.stances li { counter-increment: s; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; padding: 22px 0; border-top: 1px solid var(--border-soft); }
+.stances li:last-child { border-bottom: 1px solid var(--border-soft); }
+.stances li::before { content: counter(s, decimal-leading-zero); font-family: var(--latin-ui); font-size: 13px; color: var(--stone); padding-top: 8px; }
+.stances q { quotes: none; display: block; font-size: 21px; line-height: 1.6; color: var(--near-black); }
+.stances q em { font-style: normal; color: var(--brand); }
+.stances small { display: block; margin-top: 6px; font-family: var(--latin-ui); font-size: 13px; color: var(--stone); }
+@media (max-width: 480px) { .stances li { grid-template-columns: minmax(0, 1fr); gap: 0; } .stances li::before { padding-top: 0; } .stances q { font-size: 18px; } }
+
+/* Manifesto */
+.manifesto { font-size: 22px; line-height: 1.7; letter-spacing: .05em; color: var(--near-black); margin: 0; max-width: 860px; }
+.manifesto em { font-style: normal; color: var(--brand); }
+.manifesto-src { font-family: var(--latin-ui); font-size: 13px; color: var(--stone); margin-top: 20px; }
+
+/* Subscribe */
+.subscribe { background: var(--ivory); border: 1px solid var(--border); border-radius: 8px; padding: 40px; }
+.sub-form { display: flex; gap: 10px; max-width: 520px; margin-top: 20px; }
+.sub-form input {
+  flex: 1; min-width: 0; font-family: var(--latin-ui); font-size: 15px; color: var(--near-black);
+  background: var(--parchment); border: 1.5px solid var(--border); border-radius: 999px; padding: 12px 22px;
+  outline: none; transition: border-color .15s;
+}
+.sub-form input::placeholder { color: var(--stone); }
+.sub-form input:focus { border-color: var(--brand); }
+.sub-form .btn-primary { min-width: 112px; }
+.sub-note { font-family: var(--latin-ui); font-size: 13px; color: var(--stone); margin: 10px 0 0 4px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.subscribe .channels { display: flex; align-items: center; gap: 16px; font-family: var(--latin-ui); font-size: 14px; color: var(--stone); margin: 20px 0 0; }
+
+/* Footer */
+footer { display: flex; justify-content: space-between; gap: 48px; padding-top: 40px; border-top: 1px solid var(--border-soft); }
+.mark b { display: block; font-size: 20px; font-weight: 500; }
+.mark span { font-family: var(--latin-ui); font-size: 13px; color: var(--stone); }
+.colophon { text-align: right; }
+.colophon .links { justify-content: flex-end; }
+.ethos { font-style: italic; color: var(--olive); font-size: 14px; max-width: 600px; margin: 12px 0 0 auto; }
+
+/* ========== Responsive ========== */
+@media (max-width: 880px) {
+  .page { padding: 64px 32px 96px; }
+  .hero { margin-bottom: 72px; }
+  section { margin-bottom: 72px; }
+  .hero h1 { font-size: 64px; }
+  .hero-name img { width: 80px; height: 80px; }
+  .feature { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  footer { flex-direction: column; gap: 24px; }
+  .colophon { text-align: left; }
+  .colophon .links { justify-content: flex-start; }
+  .ethos { margin-left: 0; }
+}
+@media (max-width: 480px) {
+  .page { padding: 40px 16px 72px; }
+  .hero { margin-bottom: 56px; padding-bottom: 40px; }
+  section { margin-bottom: 56px; }
+  .hero h1 { font-size: 48px; }
+  .hero-name { gap: 14px; }
+  .hero-name img { width: 64px; height: 64px; }
+  .hero .tagline { font-size: 21px; }
+  .hero-sub { font-size: 15.5px; }
+  .section-title { font-size: 28px; }
+  .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .metric b { font-size: 22px; }
+  .posts li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .posts a { font-size: 17px; }
+  .manifesto { font-size: 19px; }
+  .subscribe { padding: 24px 18px; }
+  .sub-form .btn-primary { min-width: 88px; padding: 12px 20px; }
+  .eyebrow { flex-direction: column; align-items: flex-start; gap: 14px; }
+}
+
+/* Phones: every tap target at least 44px tall, layout unchanged */
+@media (max-width: 480px) {
+  .hero-links, .colophon .links { gap: 0; }
+  .hero-links > a, .colophon .links a { padding: 13px 8px; margin: -13px 0; }
+  .hero-links > a:first-child, .colophon .links a:first-child { margin-left: -8px; }
+  .lang-switch { margin-left: 6px; padding-left: 14px; white-space: nowrap; }
+  .lang-switch > a, .lang-switch > span { padding: 13px 8px; margin: -10px 0; }
+  .feature-links a, .more { display: inline-block; padding: 12px 0; margin: -12px 0; }
+  .posts a { display: block; padding: 10px 0; margin: -10px 0; }
+}
+
+/* ========== Dark theme: only when the reader picks it (default is light) ========== */
+:root { --on-brand: #faf9f5; color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --parchment: #1b1a17; --ivory: #23221e; --inline-code-bg: #2a2925;
+  --brand: #9db8dc; --brand-light: #c0d3ec; --brand-tint: #26303d;
+  --near-black: #ecebe4; --dark-warm: #d2d0c7; --olive: #b5b2a6; --stone: #8f8c82;
+  --border: #34322d; --border-soft: #2f2d29; --on-brand: #141413;
+}
+/* The avatar is black ink on white: it melts into the paper in light mode and
+   keeps its own white ground (cut to a circle) after dark, unaltered */
+:root[data-theme="dark"] .hero-name img { mix-blend-mode: normal; border-radius: 50%; }
+
+/* ========== Theme toggle: moon in light mode, sun after dark ========== */
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center; position: relative;
+  width: 26px; height: 26px; margin-left: 4px; padding: 0; border: 0; background: none;
+  color: var(--stone); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.theme-toggle svg {
+  position: absolute; width: 18px; height: 18px; fill: none; stroke: currentColor;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  transition: opacity .3s, transform .45s cubic-bezier(.3, 1.3, .5, 1);
+}
+.theme-toggle .sun { opacity: 0; transform: rotate(-90deg) scale(.6); }
+:root[data-theme="dark"] .theme-toggle .moon { opacity: 0; transform: rotate(90deg) scale(.6); }
+:root[data-theme="dark"] .theme-toggle .sun { opacity: 1; transform: none; }
+@media (hover: hover) { .theme-toggle:hover { color: var(--brand); } }
+.theme-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { .theme-toggle svg { transition: none; } }
+@media (max-width: 480px) { .theme-toggle { width: 34px; height: 44px; margin: -9px 0 -9px 2px; } }
+/* Language switch is a page navigation, animated as a page turn (see head script) */
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+/* Language switch turns the page: forward lifts the old sheet off the top,
+   back lays the new sheet down over it. Both hinge on the left edge. */
+html[data-turn="forward"]::view-transition-old(root) { z-index: 2; }
+html[data-turn]::view-transition-group(root) { animation-duration: 0s; }
+
+/* ========== Product page ========== */
+.crumb { color: var(--stone); text-transform: none; }
+.crumb a { color: var(--stone); }
+@media (hover: hover) { .crumb a:hover { color: var(--brand); } }
+.hero h1.product { font-size: 72px; margin: 0 0 18px; }
+.hero .tagline.product { font-size: 24px; }
+
+/* Gallery: real captures of the tool, one at a time, tabs below */
+.gallery { margin: 0 0 96px; }
+.shot { background: #141318; border: 1px solid var(--border); border-radius: 8px; padding: 14px; overflow: hidden; }
+.shot img { display: block; width: 100%; height: auto; border-radius: 4px; }
+.shot img[hidden] { display: none; }
+.shot .only-dark { display: none; }
+:root[data-theme="dark"] .shot .only-light { display: none; }
+:root[data-theme="dark"] .shot .only-dark:not([hidden]) { display: block; }
+.gallery-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; margin-top: 14px; }
+.gallery-bar .line { font-style: italic; color: var(--olive); font-size: 14px; margin: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button { font-family: var(--latin-ui); font-size: 12px; font-weight: 500; color: var(--stone); background: none; border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--brand); background: var(--brand-tint); border-color: transparent; }
+@media (hover: hover) { .tabs button:hover { color: var(--brand); } }
+
+/* Steps */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; counter-reset: st; }
+.steps li { counter-increment: st; background: var(--ivory); border: 1px solid var(--border); border-radius: 8px; padding: 22px; }
+.steps li::before { content: counter(st); display: block; font-family: var(--latin-ui); font-size: 12px; font-weight: 600; color: var(--brand); margin-bottom: 8px; }
+.steps h3 { font-weight: 500; font-size: 19px; margin: 0 0 6px; }
+.steps p { margin: 0; color: var(--dark-warm); font-size: 14.5px; line-height: 1.65; }
+
+/* Editorial table */
+.table { width: 100%; border-collapse: collapse; margin-top: 28px; font-size: 14.5px; }
+.table th { font-family: var(--latin-ui); font-size: 12px; font-weight: 500; letter-spacing: .4px; color: var(--stone); text-align: left; padding: 0 16px 10px 0; border-bottom: 1px solid var(--border); }
+.table td { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--border-soft); color: var(--dark-warm); vertical-align: top; }
+.table td:first-child { color: var(--near-black); font-weight: 500; white-space: nowrap; }
+
+/* Evidence grades */
+.grades { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 8px 0 0; }
+.grade { background: var(--ivory); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+.grade b { display: block; font-size: 30px; font-weight: 500; line-height: 1; color: var(--brand); margin-bottom: 10px; }
+.grade h4 { margin: 0 0 4px; font-size: 16px; font-weight: 500; }
+.grade p { margin: 0; color: var(--olive); font-size: 13.5px; line-height: 1.6; }
+.grade.warn b, .grade.warn p { color: #b4452c; }
+:root[data-theme="dark"] .grade.warn b, :root[data-theme="dark"] .grade.warn p { color: #e08a72; }
+
+/* Red flags */
+.flags { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 28px; }
+.flags li { padding: 12px 0 12px 14px; border-bottom: 1px solid var(--border-soft); border-left: 2px solid #c8664d; margin-bottom: 10px; font-size: 15px; }
+
+/* FAQ */
+.faq details { border-bottom: 1px solid var(--border-soft); padding: 16px 0; }
+.faq details:first-child { border-top: 1px solid var(--border-soft); }
+.faq summary { cursor: pointer; font-size: 17px; font-weight: 500; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--latin-ui); color: var(--stone); transition: transform .2s; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin: 10px 0 0; color: var(--olive); font-size: 15px; }
+
+/* Maker */
+.maker { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 28px; align-items: start; }
+.maker img { width: 96px; height: 96px; mix-blend-mode: multiply; }
+:root[data-theme="dark"] .maker img { mix-blend-mode: normal; border-radius: 50%; }
+.maker h2 { font-weight: 500; font-size: 26px; margin: 0 0 8px; }
+.maker p { margin: 0 0 14px; color: var(--olive); }
+
+@media (max-width: 880px) {
+  .steps, .grades { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .flags { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero h1.product { font-size: 56px; }
+}
+@media (max-width: 480px) {
+  .steps, .grades, .flags { grid-template-columns: minmax(0, 1fr); }
+  .hero h1.product { font-size: 42px; }
+  .hero .tagline.product { font-size: 19px; }
+  .gallery-bar { grid-template-columns: minmax(0, 1fr); }
+  .shot { padding: 8px; }
+  .table, .table tbody, .table tr, .table td { display: block; }
+  .table thead { display: none; }
+  .table td { border: 0; padding: 2px 0; }
+  .table tr { padding: 12px 0; border-bottom: 1px solid var(--border-soft); }
+  .table td:first-child { white-space: normal; }
+  .maker { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .maker img { width: 72px; height: 72px; }
+}
+
+/* ========== The tool itself (course-check), restyled in the site's tokens ========== */
+.tool { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin: 0 0 96px; scroll-margin-top: 24px; }
+.panel { background: var(--ivory); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border-soft); }
+.panel-title { font-size: 17px; font-weight: 500; margin: 0; }
+.panel-note { font-family: var(--latin-ui); font-size: 12px; color: var(--stone); margin: 0; }
+.panel-body { padding: 20px; }
+.field { margin: 0 0 18px; }
+.field:last-child { margin-bottom: 0; }
+.tool label, .tool .group-label { display: block; font-family: var(--latin-ui); font-size: 13px; font-weight: 500; color: var(--dark-warm); margin: 0 0 6px; }
+.tool .hint { font-weight: 400; font-size: 12px; color: var(--stone); margin-left: 6px; }
+.example-flag { font-size: 11px; font-weight: 500; color: #9a6a1f; border: 1px dashed currentColor; border-radius: 4px; padding: 0 5px; margin-left: 4px; }
+:root[data-theme="dark"] .example-flag { color: #d8b06a; }
+.tool input, .tool textarea {
+  width: 100%; font-family: var(--latin-ui); font-size: 15px; line-height: 1.5; color: var(--near-black);
+  background: var(--parchment); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; outline: none;
+  transition: border-color .15s;
+}
+.tool textarea { resize: vertical; min-height: 64px; }
+.tool input:focus, .tool textarea:focus { border-color: var(--brand); }
+.modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; padding: 3px; border: 1.5px solid var(--border); border-radius: 999px; }
+.modes button { font-family: var(--latin-ui); font-size: 13px; font-weight: 500; color: var(--stone); background: none; border: 0; border-radius: 999px; padding: 8px 4px; cursor: pointer; transition: background .15s, color .15s; }
+.modes button[aria-pressed="true"] { background: var(--brand); color: var(--on-brand); }
+@media (hover: hover) { .modes button[aria-pressed="false"]:hover { color: var(--brand); } }
+.mode-note { font-family: var(--latin-ui); font-size: 12.5px; line-height: 1.65; color: var(--olive); margin: 10px 0 0; }
+.launch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.go { text-align: left; background: var(--parchment); border: 1.5px solid var(--border); border-radius: 8px; padding: 12px 14px; cursor: pointer; font-family: var(--latin-ui); transition: border-color .15s, transform .15s; }
+@media (hover: hover) { .go:hover { border-color: var(--brand); transform: translateY(-1px); } }
+.go:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.go .n { display: block; font-size: 15px; font-weight: 500; color: var(--near-black); }
+.go .s { display: block; font-size: 12px; color: var(--stone); margin-top: 2px; }
+.go .s.auto { color: var(--brand); }
+.go.wide { grid-column: 1 / -1; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 18px; }
+.row-actions .btn-ghost { min-width: 0; padding: 9px 18px; font-size: 14px; }
+.count { display: flex; justify-content: space-between; font-family: var(--latin-ui); font-size: 12px; color: var(--stone); margin: 0 0 6px; }
+.count b { font-weight: 500; color: var(--dark-warm); font-variant-numeric: tabular-nums; }
+.preview { margin: 0; background: var(--inline-code-bg); border-radius: 8px; padding: 14px; font: 12.5px/1.65 "JetBrains Mono", "SF Mono", ui-monospace, "PingFang TC", monospace; color: var(--dark-warm); white-space: pre-wrap; word-break: break-word; max-height: 340px; overflow: auto; }
+#toast { position: fixed; left: 50%; bottom: 24px; z-index: 60; transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  max-width: calc(100% - 32px); background: var(--near-black); color: var(--parchment); font-family: var(--latin-ui); font-size: 14px; line-height: 1.5; padding: 12px 18px; border-radius: 12px; transition: opacity .25s, transform .25s; }
+#toast.on { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 880px) { .tool { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .panel-body { padding: 16px; } .tool { margin-bottom: 64px; } }
+
+/* Eyebrow: the label never wraps. When label + icon row no longer fit side by
+   side, stack them (label above, icons below) instead of squeezing the label. */
+.eyebrow > span:first-child { white-space: nowrap; }
+@media (max-width: 720px) {
+  .eyebrow { flex-direction: column; align-items: flex-start; gap: 14px; }
+}
+
+/* Very narrow phones (≤360px): six icons + language + theme still fit on one row.
+   Tap height stays 44px; only the horizontal padding tightens. */
+@media (max-width: 360px) {
+  .hero-links > a, .colophon .links a { padding: 13px 5px; }
+  .hero-links > a:first-child, .colophon .links a:first-child { margin-left: -5px; }
+  .lang-switch { margin-left: 2px; padding-left: 10px; }
+  .lang-switch > a, .lang-switch > span { min-width: 34px; padding: 13px 5px; }
+  .theme-toggle { width: 30px; }
+}
+
+/* Phones: seven icons no longer fit beside the language switch and theme button.
+   Language + theme join the label's line; the icons get their own row below. */
+@media (max-width: 480px) {
+  .eyebrow { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px 0; }
+  .eyebrow > span:first-child { flex: 1 1 auto; order: 0; }
+  .hero-links { display: contents; }
+  .eyebrow .lang-switch { order: 1; margin-left: 0; padding-left: 0; border-left: 0; }
+  .eyebrow .theme-toggle { order: 2; }
+  .eyebrow::after { content: ""; flex-basis: 100%; order: 3; }
+  .hero-links > a { order: 4; }
+}
+
+/* Design credit: one quiet line, once */
+.credit { font-family: var(--latin-ui); font-size: 12px; color: var(--stone); margin: 10px 0 0; }
+.credit a { color: var(--stone); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, var(--stone) 45%, transparent); }
+@media (hover: hover) { .credit a:hover { color: var(--brand); } }
+.product-foot { padding-top: 32px; border-top: 1px solid var(--border-soft); }
+
+/* Product pages: personal links live in the maker card, not the top bar */
+.maker-links { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 16px 0 0; }
+.maker-links a { color: var(--stone); display: inline-flex; padding: 4px; margin: -4px; }
+@media (hover: hover) { .maker-links a:hover { color: var(--brand); } }
+
+/* ========== 104 page ========== */
+.disclaimer { font-family: var(--latin-ui); font-size: 12.5px; color: var(--stone); margin: 18px 0 0; }
+.note { background: var(--ivory); border: 1px solid var(--border); border-left: 3px solid var(--brand); border-radius: 8px; padding: 16px 18px; margin: 0 0 28px; color: var(--dark-warm); font-size: 15px; }
+.note b { color: var(--near-black); font-weight: 600; }
+.install { list-style: none; counter-reset: ins; margin: 0; padding: 0; }
+.install > li { counter-increment: ins; position: relative; padding: 0 0 28px 44px; }
+.install > li::before { content: counter(ins); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: var(--on-brand); font-family: var(--latin-ui); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.install h3 { font-size: 18px; font-weight: 500; margin: 2px 0 6px; }
+.install p { margin: 0 0 10px; color: var(--dark-warm); font-size: 15px; }
+.install img { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 6px; margin-top: 8px; }
+.install img.narrow { max-width: min(424px, 100%); }
+code { font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace; font-size: .88em; background: var(--inline-code-bg); color: var(--dark-warm); padding: 1px 5px; border-radius: 3px; }
+.marks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.mark-card { background: var(--ivory); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+.mark-card b { display: inline-block; font-family: var(--latin-ui); font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+.mark-card .ok { color: #2f7a46; background: #e6f2ea; }
+.mark-card .old { color: #b4452c; background: #f7e7e2; }
+.mark-card .em { color: var(--near-black); background: var(--warm-sand, #e8e6dc); }
+:root[data-theme="dark"] .mark-card .ok { color: #8fd0a2; background: #1f3326; }
+:root[data-theme="dark"] .mark-card .old { color: #e8a08c; background: #3a241e; }
+:root[data-theme="dark"] .mark-card .em { color: var(--near-black); background: #33312c; }
+.mark-card p { margin: 0; font-size: 14px; color: var(--olive); }
+.support { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.product-foot { display: block; }
+.product-foot .links { font-family: var(--latin-ui); font-size: 13px; color: var(--stone); margin: 0 0 6px; }
+.product-foot .links a:not(:last-child)::after { content: "・"; color: var(--stone); margin: 0 4px; }
+@media (max-width: 880px) { .marks { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .install > li { padding-left: 38px; } }
+
+/* Product icon beside the title */
+.product-title { display: flex; align-items: center; gap: 22px; margin: 0 0 18px; }
+.product-title img { width: 76px; height: 76px; border-radius: 17px; flex: none; }
+.product-title h1.product { margin: 0; }
+@media (max-width: 880px) { .product-title img { width: 64px; height: 64px; border-radius: 14px; } }
+@media (max-width: 480px) { .product-title { gap: 14px; } .product-title img { width: 52px; height: 52px; border-radius: 12px; } }
+
+/* ========== Site chrome: header nav + shared footer ========== */
+.crumb { color: var(--stone); text-transform: none; }
+.crumb a { color: var(--stone); }
+.crumb .sep { margin: 0 6px; color: var(--border); }
+.crumb [aria-current] { color: var(--dark-warm); }
+@media (hover: hover) { .crumb a:hover { color: var(--brand); } }
+.site-nav { display: flex; align-items: center; gap: 18px; font-family: var(--latin-ui); font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: .2px; }
+.site-nav a { color: var(--stone); }
+.site-nav a[aria-current] { color: var(--near-black); }
+@media (hover: hover) { .site-nav a:hover { color: var(--brand); } }
+.foot-nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 18px; font-family: var(--latin-ui); font-size: 13px; margin: 0 0 14px; }
+.foot-nav a { color: var(--dark-warm); }
+@media (hover: hover) { .foot-nav a:hover { color: var(--brand); } }
+.site-foot { margin-top: 56px; }
+@media (max-width: 880px) { .foot-nav { justify-content: flex-start; } }
+@media (max-width: 480px) { .eyebrow .site-nav { order: 4; } }
+
+/* ========== Links in running text: brighter blue + soft underline (option B) ========== */
+:root { --link: #2456a6; }
+:root[data-theme="dark"] { --link: #8fb4ea; }
+.feature-links a, .items a, .posts a, .more, .manifesto-src a, .go-link, .sub-note a, .doc p a, .doc li a, .faq details p a, .install p a, .note a, .stances small a, .product-foot .links a {
+  color: var(--link); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px;
+  text-decoration-color: color-mix(in srgb, var(--link) 38%, transparent); transition: text-decoration-color .15s, color .15s;
+}
+@media (hover: hover) {
+  .feature-links a:hover, .items a:hover, .posts a:hover, .more:hover, .manifesto-src a:hover, .go-link:hover, .sub-note a:hover,
+  .doc p a:hover, .doc li a:hover, .faq details p a:hover, .install p a:hover, .note a:hover, .stances small a:hover, .product-foot .links a:hover { color: var(--link); text-decoration-color: currentColor; }
+}
+/* the separators between links sit inside the anchors; keep them un-underlined */
+.feature-links a:not(:last-child)::after, .product-foot .links a:not(:last-child)::after { display: inline-block; text-decoration: none; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-substack" viewBox="0 0 24 24"><path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z"/></symbol>
+  <symbol id="i-threads" viewBox="0 0 24 24"><path d="M18.263 11.097c-.03-3.486-1.92-5.586-5.111-5.586-2.13 0-3.922.963-4.863 2.499l2.062 1.438c.535-.843 1.272-1.543 2.628-1.543 1.528 0 2.318.85 2.544 2.431a15 15 0 0 0-2.236-.173c-4.125 0-6.068 1.867-6.068 4.336s1.943 3.99 4.804 3.99c3.139 0 5.013-2.115 5.781-4.735.798.361 1.348 1.204 1.348 2.47 0 3.387-3.907 5.232-7.22 5.232-4.885 0-8.077-3.207-8.077-8.424 0-6.392 4.223-10.487 9.9-10.487 3.808 0 5.69 1.671 6.97 3.914l2.108-1.475C21.44 2.078 18.331 0 13.663 0 6.227 0 1.168 5.277 1.168 12.934c0 7 4.953 11.066 10.856 11.066 4.878 0 9.809-2.846 9.809-7.716 0-2.545-1.46-4.231-3.569-5.187m-6.33 4.855c-1.077 0-2.026-.512-2.026-1.453 0-1.483 1.822-1.934 3.606-1.934.678 0 1.34.045 1.927.173-.422 1.927-1.671 3.215-3.508 3.214Z"/></symbol>
+  <symbol id="i-instagram" viewBox="0 0 24 24"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></symbol>
+  <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></symbol>
+  <symbol id="i-linkedin" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></symbol>
+</svg>
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">
+      <span class="crumb"><a href="/en/">Eric Yen</a><span class="sep">/</span><a href="/en/products/">Products</a><span class="sep">/</span><span aria-current="page">Job research prompt</span></span>
+      <nav class="hero-links"><a href="https://github.com/fansia/job-research-prompt" aria-label="GitHub" title="GitHub"><svg class="ico"><use href="#i-github"/></svg></a><span class="lang-switch"><a href="../" hreflang="zh-Hant" lang="zh-Hant">中文</a><span aria-current="true" lang="en">EN</span></span><button class="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch to dark theme"><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button></nav>
+    </div>
+    <div class="product-title"><img src="../assets/icon-256.png" alt="" width="76" height="76"><h1 class="product">A prompt for researching jobs</h1></div>
+    <p class="tagline product">Know whether a company and a role are worth it before you apply.</p>
+    <p class="hero-sub">Paste it into Perplexity, Gemini or any major AI with a job link from 104, LinkedIn or anywhere else, and get a report on the company and the role. The prompt is in Chinese and written for Taiwan's job market.</p>
+    <div class="hero-tokens"><span>Free</span><span>No sign-up</span><span>Copy and go</span></div>
+    <div class="hero-cta">
+      <a class="btn-primary" href="#tool">Get the prompt</a>
+      <a class="btn-ghost" href="#how">What the report covers</a>
+    </div>
+  </header>
+
+  <section class="tool" id="tool" aria-label="Paste a job link and copy the prompt">
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">Prepare the prompt</h2><p class="panel-note">Best with an AI that searches the web</p></div>
+      <div class="panel-body">
+        <div class="field"><label for="p-link">Job link <span class="hint">optional, you can paste it later</span></label>
+          <input id="p-link" type="url" placeholder="https://..." autocomplete="off"></div>
+        <div class="launch"><button class="go" type="button" data-url="https://www.perplexity.ai/" data-name="Perplexity"><span class="n">Perplexity</span><span class="s">Copy, then open</span></button><button class="go" type="button" data-url="https://gemini.google.com/app" data-name="Gemini"><span class="n">Gemini</span><span class="s">Copy, then open</span></button><button class="go" type="button" data-url="https://chatgpt.com/" data-name="ChatGPT"><span class="n">ChatGPT</span><span class="s">Copy, then open</span></button><button class="go" type="button" data-url="https://claude.ai/new" data-name="Claude"><span class="n">Claude</span><span class="s">Copy, then open</span></button></div>
+        <div class="row-actions"><button class="btn-ghost" type="button" id="btn-copy">Copy the prompt only</button></div>
+        <p class="mode-note">Add a job link and it's appended to the end of the prompt. Perplexity or Gemini work best: they actually search the web and cite their sources.</p>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2 class="panel-title">The full prompt (Chinese)</h2><p class="panel-note"><b id="chars">0</b> characters</p></div>
+      <div class="panel-body"><pre class="preview" id="preview" aria-live="polite"></pre></div>
+    </div>
+  </section>
+
+  <section id="why">
+    <p class="section-num">01 · Why I made this</p>
+    <h2 class="section-title">Do your homework before applying</h2>
+    <p class="manifesto">Too many people asked me for it. I thought about turning it into a service, then decided <em>to just share it with everyone</em>, so you can gather more information before you apply.</p>
+    <p class="manifesto-src"><a href="https://www.threads.com/@ericyen.sc/post/DT0P0PoknGV" lang="zh-Hant">Threads · 2026.01.22</a></p>
+  </section>
+
+  <section id="how">
+    <p class="section-num">02 · How to use it</p>
+    <h2 class="section-title">Three steps, no sign-up</h2>
+    <ol class="steps">
+      <li><h3>Paste a job link</h3><p>Any job page works: 104, LinkedIn or a company site. Or leave it empty and paste it in the chat later.</p></li>
+      <li><h3>Pick an AI</h3><p>The button copies the prompt first, then opens a new tab. Perplexity or Gemini work best because they search the web.</p></li>
+      <li><h3>Paste and send</h3><p>Paste into the chat box. Once the report is in, keep asking about whatever matters most to you.</p></li>
+    </ol>
+  </section>
+
+  <section id="what">
+    <p class="section-num">03 · What the report covers</p>
+    <h2 class="section-title">Five parts, in clear bullet points</h2>
+    <div class="features">
+      <div class="feature"><h3 class="feature-name">Company and industry<small>Where it stands</small></h3><div class="feature-desc"><p>Business model, stage, news and controversies from the last one to two years (including leadership changes), and competitors.</p></div></div>
+      <div class="feature"><h3 class="feature-name">What the job really is<small>The day to day</small></h3><div class="feature-desc"><p>Daily tasks, how performance is measured, and the skills and traits that matter, with why.</p></div></div>
+      <div class="feature"><h3 class="feature-name">Pay, hours and benefits<small>Only where there's data</small></h3><div class="feature-desc"><p>Salary range for similar roles, overtime and time off, benefits people like and the ones they complain about.</p></div></div>
+      <div class="feature"><h3 class="feature-name">What people actually say<small>Pros, pitfalls, biases</small></h3><div class="feature-desc"><p>A synthesis of Taiwanese forums and review sites (Dcard, PTT, GoodJob), with a note on how those reviews can be biased.</p></div></div>
+      <div class="feature"><h3 class="feature-name">Where the job leads<small>Career path</small></h3><div class="feature-desc"><p>Promotion and transfers inside the company, options outside it, the skills you'd build, and the risks.</p></div></div>
+    </div>
+  </section>
+
+  <section id="honest">
+    <p class="section-num">04 · When information is thin</p>
+    <p class="manifesto">The prompt tells the AI: if there's little information or only scattered posts, <em>say so</em> ("limited data, individual experiences, not representative of the whole company") instead of filling the gap; and never judge from a single person's review.</p>
+    <p class="manifesto-src">Still check what the AI writes, and open the cited links yourself.</p>
+  </section>
+
+  <section id="faq" class="faq">
+    <p class="section-num">05 · FAQ</p>
+    <h2 class="section-title">Questions</h2>
+    <details><summary>Does it cost anything? Do I need an account?</summary><p>No and no. It's a prompt: copy it into whichever AI you use. Whether that AI is free is up to the platform.</p></details>
+    <details><summary>Which AI works best?</summary><p>One that searches the web, like Perplexity or Gemini, so the report cites its sources. Models without search only know what they were trained on, so news and pay can be out of date.</p></details>
+    <details><summary>Does anyone collect the job link I type?</summary><p>This is a static page with no backend. The link stays in your own browser for next time; when you press a button it goes, with the prompt, to the AI you picked.</p></details>
+    <details><summary>Can I trust the pay and reviews in the report?</summary><p>No. They are the AI's estimates from public data, and the prompt asks it to flag thin data. Check anything important yourself before an interview.</p></details>
+  </section>
+
+<section id="maker">
+    <div class="subscribe maker">
+      <img src="../assets/avatar.jpg" alt="Line-art portrait of Eric Yen">
+      <div>
+        <p class="section-num">Who made this</p>
+        <h2>Hi, I'm Eric</h2>
+        <p>Former Senior Technical Manager (E10) at MediaTek, two-time founder. I want to help people who, like me, feel stuck at work and want to find their passion, use AI to try things and discover work that makes them happy.</p>
+        <form class="sub-form" action="https://ericyensc.substack.com/subscribe" method="get" target="_blank">
+        <label class="sr-only" for="sub-email">Email</label>
+        <input id="sub-email" type="email" name="email" placeholder="Your email" required autocomplete="email">
+        <button class="btn-primary" type="submit">Subscribe</button>
+      </form>
+        <p class="sub-note">Opens Substack to confirm. One more click and you're in. · <a href="/en/">Eric Yen's homepage</a></p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="product-foot">
+    <p class="links"><a href="https://github.com/fansia/job-research-prompt">GitHub</a><span>MIT licensed</span><a href="https://www.threads.com/@ericyen.sc/post/DT0P0PoknGV" lang="zh-Hant">原始 Threads 貼文</a></p>
+    
+  </footer>
+
+  <footer class="site-foot">
+    <div class="mark">
+      <b>Eric Yen</b>
+      <span>Work you love is found by trying</span>
+    </div>
+    <div class="colophon">
+      <nav class="foot-nav" aria-label="site"><a href="/en/">Home</a><a href="/en/products/">Products</a><a href="https://ericyensc.substack.com/archive" target="_blank" rel="noopener">Writing ↗</a><a href="/en/#subscribe">Subscribe</a></nav>
+      <div class="links"><a href="https://ericyensc.substack.com" aria-label="Substack" title="Substack"><svg class="ico"><use href="#i-substack"/></svg></a><a href="https://www.threads.com/@ericyen.sc" aria-label="Threads" title="Threads"><svg class="ico"><use href="#i-threads"/></svg></a><a href="https://www.instagram.com/ericyen.sc/" aria-label="Instagram" title="Instagram"><svg class="ico"><use href="#i-instagram"/></svg></a><a href="https://www.facebook.com/eric.sc.yen" aria-label="Facebook" title="Facebook"><svg class="ico"><use href="#i-facebook"/></svg></a><a href="https://x.com/ericyen_sc" aria-label="X" title="X"><svg class="ico"><use href="#i-x"/></svg></a><a href="https://www.linkedin.com/in/ericyen-sc/" aria-label="LinkedIn" title="LinkedIn"><svg class="ico"><use href="#i-linkedin"/></svg></a><a href="https://github.com/fansia" aria-label="GitHub" title="GitHub"><svg class="ico"><use href="#i-github"/></svg></a></div>
+      <p class="ethos num"><span>Ex-MediaTek Senior Technical Manager (E10)</span> <span>M.S. CS, National Taiwan University (AI/NLP)</span> <span>Two-time founder</span> <span>20+ years building software</span> <span>5 years in product and project management</span> <span>3 kids</span></p>
+      <p class="credit">Design inspired by <a href="https://kami.tw93.fun">Kami</a></p>
+    </div>
+  </footer>
+
+</div>
+<script>
+(function () {
+  var root = document.documentElement, btn = document.querySelector(".theme-toggle");
+  var isDark = function () {
+    return root.dataset.theme === "dark";  /* light unless the reader chose dark */
+  };
+  var label = function () {
+    var t = isDark() ? "Switch to light theme" : "Switch to dark theme";
+    btn.setAttribute("aria-label", t); btn.title = t; btn.setAttribute("aria-pressed", String(isDark()));
+  };
+  label();
+  btn.addEventListener("click", function () {
+    var next = isDark() ? "light" : "dark";
+    var apply = function () { root.dataset.theme = next; try { localStorage.setItem("theme", next); } catch (e) {} label(); };
+    if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) { apply(); return; }
+    /* The new theme spreads out from the button like ink on paper. */
+    var r0 = btn.getBoundingClientRect(), x = r0.left + r0.width / 2, y = r0.top + r0.height / 2;
+    var r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    document.startViewTransition(apply).ready.then(function () {
+      root.animate({ clipPath: ["circle(0 at " + x + "px " + y + "px)", "circle(" + r + "px at " + x + "px " + y + "px)"] },
+        { duration: 700, easing: "cubic-bezier(.4, 0, .2, 1)", pseudoElement: "::view-transition-new(root)" });
+    });
+  });
+})();
+</script>
+<script>
+document.querySelectorAll(".lang-switch a").forEach(function (a) {
+  a.addEventListener("click", function () {
+    try { sessionStorage.setItem("turn", a.getAttribute("hreflang") === "en" ? "forward" : "back"); } catch (e) {}
+  });
+});
+</script>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(function () {
+  var PROMPT = "角色設定：\n請你扮演「台灣在地的職涯顧問＋產業研究員」，習慣參考 104、1111、GoodJob、面試趣、求職天眼通、比薪水、薪資查詢網站、Dcard／PTT 工作板等公開資訊，幫求職者在面試前做功課。\n回答語言請使用「繁體中文、台灣用語」，語氣自然、直接、務實，不要太官腔。\n\n工作目標：\n\n快速了解這家公司在台灣的「定位、規模、近期發展與爭議」，知道它目前在市場上的位置、有什麼新聞或話題。\n\n針對【上述職缺】整理「實際工作內容、薪資與工時、壓力來源與發展性」，盡量結合論壇與評價網站的第一手經驗，但不要逐字引用、也不要只看單一個人的心得，要幫我做綜合判斷。\n\n請依照下面「五大段結構」輸出完整報告，每一段都要有，資訊不足就註明。\n條列為主，不要寫成一大篇文章。\n\n一、公司與產業概況\n請用 3～5 句話，說明這家公司在台灣的：\n\n商業模式、主要產品／服務（簡單講出它賺錢模式）。\n\n目前發展階段（例如：快速擴張、穩定獲利、縮編調整、轉型期等）。\n\n同步加入「最近新聞事件整理」，具體要求如下：\n\n範圍：\n\n以「最近 1～2 年」的公開新聞與討論為主（新聞媒體、財經／科技媒體、官方公告、法院或政府公開資料、Dcard／PTT 熱門討論）。\n\n內容請條列整理：\n\n正向／中性的重大事件（例如：募資、併購、重大合作、產品上市、得獎、擴點、財報或成長數字）。\n\n負面或爭議事件（例如：勞資糾紛、職場霸凌或性平案件、資安事件、大規模裁員、財務危機、司法案件）。\n\n若事件跟「管理層變動」有關（例如：董事長／技術長／CEO 離職或更替、被集團入股接手），請特別標出「時間點＋大致原因＋對組織可能的影響」。\n\n每個事件請用 1～3 句話說明，包含：\n\n事件發生時間（至少標出年份、能標月份更好）。\n\n發生了什麼事（用白話重述，不要複製新聞標題）。\n\n對員工或求職者可能有什麼影響（例如：文化、穩定性、升遷、工時壓力）。\n\n若資訊很少，或只查到零星爆料文，請註明「資料有限，僅為個別經驗，不代表全公司情況」，不要自行腦補。\n\n若有重大爭議或司法案件（例如高層犯罪、嚴重職場事件），請務必獨立列一小段，幫我簡要整理：\n\n事件經過概貌。\n\n後續處理情況（例如：是否進入司法程序、是否有新股東／新管理層介入、公司對外聲明重點）。\n\n求職者在面試前需要特別留意與思考的點。\n\n再補充：\n\n在台灣同產業的大致競爭對手有哪些。\n\n這家公司大概屬於哪種風格（例如：「薪資偏高但壓力大」、「穩定保守」、「成長型新創」、「外商制度完整但溝通成本高」等）。\n\n如果資料很少，請直接註明「這部分資訊有限」。\n\n二、這個職缺的實際樣貌\n請以我貼給你的 JD／職缺內容為主，再輔以你查到的資料，拆解成三塊：\n\n1）日常工作內容\n\n列出 5–8 個「最有可能每天／每週在做的具體任務」。\n\n盡量具體描述，例如：大量撥打邀約電話、安排面試與改期、做報表追 KPI、拜訪客戶、內部對接產品／工程、寫 campaign brief、拉合作夥伴等。\n\n如果有分內勤／外勤、台灣／海外、線上／線下，請幫我註明。\n\n2）績效衡量方式（KPI）\n\n推估這個職缺最重要的 KPI 是什麼，請列 3–6 點。\n\n可以舉例說明：例如每月招募人數、到職率、營收成長、專案完成時程、錯誤率、Bug 關閉數、轉換率、Retention、NPS、上線時程等。\n\n3）需要的能力與特質\n\n從 JD＋產業特性推估，列出 5–7 個特別重要的能力與個人特質。\n\n每一點請簡短註解「為什麼這個在這職缺很重要」，例如：\n\n需要強專案管理：因為同時要處理多個國家／產品線的專案，時間與資源壓力大。\n\n需要抗壓性高：因為有明確數字目標＋季度檢討，錯誤容忍度不高。\n\n三、薪資區間、工時與福利（若有資料）\n\n請參考薪資查詢網站（如：薪資查詢平台、GoodJob、面試趣、Glassdoor 等）與論壇心得，整理這家公司「同職類」的大致薪資區間。\n\n用「月薪」或「年薪總包」粗估即可，可以列成區間，例如：年薪大約 120–200 萬，或月薪 45k–65k（依年資與績效）。\n\n若資料不足，請直接標註「薪資區間為推估」。\n\n工時與加班狀況：\n\n描述常見的工時情況，例如：「多數分享提到每週工時約 xx～xx 小時」、「是否常態性加班」、「跨時區會議頻率」。\n\n說明加班費或補休制度：例如「多為責任制，少見實領加班費；但有補休」、「有打卡加班費」、「制度寫得漂亮但實務上不一定拿得到」等。\n\n若不同部門差異大，請幫我指出「哪些部門特別硬」。\n\n福利亮點與常被抱怨的缺點：\n\n列出 3–6 個福利亮點（如年假、彈性工時、遠端比例、員工旅遊、教育訓練、股票／獎金、內部輪調等）。\n\n列出 3–6 個常被抱怨的點（如：年假少、表面彈性實際不彈性、晉升很慢、加班文化重等）。\n\n沒資料就說「福利細節資訊有限」。\n\n四、討論區與評價網站的真實體感\n請綜合 Dcard 工作板、PTT、GoodJob、面試趣、薪資網站等公開資料（不要只看一兩篇），幫我整理：\n\n1）常被提到的優點（3–6 點）\n\n例如：薪資高於市場、技術強、學習曲線快、制度透明、成長機會多、同事強、品牌好看等。\n\n如果某些優點只出現在「外商／工程部門／某特定 BU」，請幫我標註。\n\n2）常被提到的缺點／踩雷點（3–8 點）\n\n例如：工時長、常態加班、會議多、流程混亂、離職率高、主管風格強硬、政治性高、溝通不良等。\n\n請盡量註明：哪些是特定部門／特定職類才特別嚴重，避免我誤以為整家公司都一樣。\n\n3）偏誤來源提醒\n\n幫我說明這些心得可能的偏誤：例如多是離職者發文、樣本數很少、文章年代較久遠、只集中在一兩個 BU 等。\n\n若台灣資料稀少，多來自國外 office 或不同職類，也請明講。\n\n五、這個職缺的未來發展分析（career path）\n請幫我分析這個職缺的中長期職涯發展，包含：\n\n1）在公司內部的發展\n\n做得好之後，上升路徑可能是哪些職位（例如：Senior、Lead、Manager of XXX、Head of XXX 等）。\n\n有沒有機會橫向轉調到其他相關職能（例如：產品行銷、BD、產品經理、營運主管、區域職缺等）。\n\n若是外商或跨國公司，未來是否有可能內轉到其他國家 office。\n\n2）在外部市場的轉職彈性\n\n這個職缺累積的能力，未來可以轉到哪些類型的公司與職位（請舉幾個方向，不用舉公司名）。\n\n在台灣／亞太市場，這類職缺的需求是否穩定（例如：B2B SaaS 行銷、硬體通路 PM、遊戲產業行銷、平台商 BD 等）。\n\n3）技能堆疊與長期競爭力\n\n具體說明這份工作會強化哪幾種能力（例如：區域市場洞察、通路管理、數據分析、專案管理、技術溝通等），以及這些能力對 3–5 年後職涯的價值。\n\n4）潛在風險\n\n例如：高度綁定特定產業（景氣循環風險）、高度依賴單一技能（未來可轉職方向可能較窄）、或外商 regional role 的組織重整風險等。\n\n其他補充說明：\n\n若某些部分資料不足或台灣案例太少，請直接說「這部分資訊有限，以下為產業＋職能的一般性推估」。\n所有內容請條列清楚，段落明確。", SUFFIX = "\n\n職缺連結：", MSG = {"opened": "Prompt copied and {name} opened. Press {key} in the chat box and send.", "copied": "Prompt copied to your clipboard."};
+  var link = document.getElementById("p-link"), pre = document.getElementById("preview"), chars = document.getElementById("chars"), toast = document.getElementById("toast");
+  var text = function () { var v = link ? link.value.trim() : ""; return v ? PROMPT + SUFFIX + v : PROMPT; };
+  var render = function () { var t = text(); pre.textContent = t; chars.textContent = String(t.length); };
+  var say = function (m) { toast.textContent = m; toast.classList.add("on"); clearTimeout(say.t); say.t = setTimeout(function () { toast.classList.remove("on"); }, 3600); };
+  var copy = function (t) {
+    try { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).catch(function () {}); } catch (e) {}
+    try { var a = document.createElement("textarea"); a.value = t; a.style.position = "fixed"; a.style.opacity = "0"; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); } catch (e) {}
+    return Promise.resolve();
+  };
+  var isMac = /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent);
+  document.querySelectorAll(".go").forEach(function (b) {
+    b.addEventListener("click", function () {
+      copy(text()); window.open(b.dataset.url, "_blank", "noopener");
+      say(MSG.opened.replace("{name}", b.dataset.name).replace("{key}", isMac ? "⌘V" : "Ctrl+V"));
+    });
+  });
+  document.getElementById("btn-copy").addEventListener("click", function () { copy(text()); say(MSG.copied); });
+  if (link) { try { link.value = localStorage.getItem("job-research-prompt-link") || ""; } catch (e) {} link.addEventListener("input", function () { render(); try { localStorage.setItem("job-research-prompt-link", link.value); } catch (e) {} }); }
+  render();
+})();
+</script>
+</body>
+</html>
