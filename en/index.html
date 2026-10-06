@@ -18,6 +18,7 @@ if (location.hostname === "fansia.github.io") location.replace("https://eric-yen
 <meta property="og:title" content="A prompt for researching jobs · Eric Yen">
 <meta property="og:description" content="Know whether a company and a role are worth it before you apply. Paste a job link and let AI write a report on the company and the role.">
 <meta property="og:image" content="https://eric-yen.com/job-research-prompt/assets/icon-256.png">
+<meta name="twitter:card" content="summary">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <link rel="icon" type="image/png" href="../assets/icon-256.png">
@@ -63,6 +64,68 @@ code { font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace; font-s
 @media (max-width: 880px) { .marks { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .install > li { padding-left: 38px; } }
 </style>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "CreativeWork",
+ "name": "A prompt for researching jobs",
+ "description": "Know whether a company and a role are worth it before you apply. Paste a job link and let AI write a report on the company and the role.",
+ "url": "https://eric-yen.com/job-research-prompt/en/",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "author": {
+  "@type": "Person",
+  "@id": "https://eric-yen.com/#eric",
+  "name": "Eric Yen",
+  "url": "https://eric-yen.com/"
+ },
+ "isPartOf": {
+  "@id": "https://eric-yen.com/#website"
+ }
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "inLanguage": "en",
+ "url": "https://eric-yen.com/job-research-prompt/en/",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "Does it cost anything? Do I need an account?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "No and no. It's a prompt: copy it into whichever AI you use. Whether that AI is free is up to the platform."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Which AI works best?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "One that searches the web, like Perplexity or Gemini, so the report cites its sources. Models without search only know what they were trained on, so news and pay can be out of date."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Does anyone collect the job link I type?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "This is a static page with no backend. The link stays in your own browser for next time; when you press a button it goes, with the prompt, to the AI you picked."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Can I trust the pay and reviews in the report?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "No. They are the AI's estimates from public data, and the prompt asks it to flag thin data. Check anything important yourself before an interview."
+   }
+  }
+ ]
+}
+</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">

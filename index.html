@@ -18,6 +18,7 @@ if (location.hostname === "fansia.github.io") location.replace("https://eric-yen
 <meta property="og:title" content="研究職缺用的 Prompt · Eric Yen">
 <meta property="og:description" content="投履歷之前，先知道這家公司跟這個職缺值不值得你去。貼上職缺連結，AI 幫你整理一份公司與職缺的分析報告。">
 <meta property="og:image" content="https://eric-yen.com/job-research-prompt/assets/icon-256.png">
+<meta name="twitter:card" content="summary">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_TW">
 <link rel="icon" type="image/png" href="assets/icon-256.png">
@@ -63,6 +64,68 @@ code { font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace; font-s
 @media (max-width: 880px) { .marks { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .install > li { padding-left: 38px; } }
 </style>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "CreativeWork",
+ "name": "研究職缺用的 Prompt",
+ "description": "投履歷之前，先知道這家公司跟這個職缺值不值得你去。貼上職缺連結，AI 幫你整理一份公司與職缺的分析報告。",
+ "url": "https://eric-yen.com/job-research-prompt/",
+ "inLanguage": "zh-Hant",
+ "isAccessibleForFree": true,
+ "author": {
+  "@type": "Person",
+  "@id": "https://eric-yen.com/#eric",
+  "name": "Eric Yen",
+  "url": "https://eric-yen.com/"
+ },
+ "isPartOf": {
+  "@id": "https://eric-yen.com/#website"
+ }
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "inLanguage": "zh-Hant",
+ "url": "https://eric-yen.com/job-research-prompt/",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "要錢嗎？要註冊嗎？",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "都不用。這只是一段 Prompt，複製去你習慣的 AI 平台用就好；用哪一家、要不要付費，看那個平台。"
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "用哪一家 AI 比較好？",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "建議用 Perplexity 或 Gemini 這種會上網搜尋的 AI，報告會附上來源連結。不會上網的模型只能用它已知的資料，新聞和薪資容易過時。"
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "我填的職缺連結會被收走嗎？",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "這一頁是靜態網頁，沒有後端。連結只存在你自己的瀏覽器，下次開還在；按下按鈕後，會跟著 Prompt 一起交給你選的那一家 AI。"
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "報告裡的薪資和評價可以直接相信嗎？",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "不行。那是 AI 綜合公開資料的推估，Prompt 也要求它在資料不足時標明。面試前請把重要的部分自己再查一次。"
+   }
+  }
+ ]
+}
+</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
